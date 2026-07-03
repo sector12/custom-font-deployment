@@ -48,13 +48,27 @@ $FontRegistry = @(
            'https://raw.githubusercontent.com/google/fonts/main/ofl/josefinsans/JosefinSans-Italic%5Bwght%5D.ttf'
        ) }
 
-    # OpenDyslexic (canonical, as-is) - DaFont zip = the classic v2.001 build,
-    # unmodified, so it keeps the "OpenDyslexic" name. The zip also carries the
-    # OpenDyslexicAlta and OpenDyslexicMono families.
+    # OpenDyslexic (canonical, as-is) - the classic pre-redesign build, unmodified,
+    # so it keeps the "OpenDyslexic" name. Same generation DaFont mirrors, but
+    # served from this repo (mirrored from the author's own repo antijingoist/
+    # open-dyslexic) to remove the runtime DaFont dependency, which a web filter
+    # can block. Includes the OpenDyslexicAlta and OpenDyslexicMono families too,
+    # matching what the DaFont zip installs.
+    # To go back to pulling the zip straight from DaFont instead, comment out the
+    # nine raw URLs below and uncomment the single DaFont line.
     @{ FamilyName = 'OpenDyslexic'
        Version    = '1'
        Urls       = @(
-           'https://dl.dafont.com/dl/?f=open_dyslexic'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexic-Regular.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexic-Bold.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexic-Italic.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexic-BoldItalic.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexicAlta-Regular.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexicAlta-Bold.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexicAlta-Italic.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexicAlta-BoldItalic.otf'
+           'https://raw.githubusercontent.com/sector12/OpenDys-B/main/OpenDyslexicMono-Regular.otf'
+           # 'https://dl.dafont.com/dl/?f=open_dyslexic'   # fallback: zip straight from DaFont
        ) }
 
     # OpenDys B - the newer redesign (GitHub 0.99), renamed for OFL compliance

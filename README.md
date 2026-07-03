@@ -5,9 +5,10 @@ dyslexia-friendly and brand fonts to a managed Windows estate.
 
 It does two jobs:
 
-1. **Hosts the `OpenDys B` font** — a renamed, OFL-compliant build of the newer
-   OpenDyslexic 3 redesign, served as raw files that the detection script pulls
-   on demand.
+1. **Hosts the OpenDyslexic fonts** — both the unmodified classic build (`OpenDyslexic`,
+   `OpenDyslexicAlta`, `OpenDyslexicMono`) and `OpenDys B`, a renamed, OFL-compliant
+   build of the newer OpenDyslexic 3 redesign — served as raw files the detection
+   script pulls on demand, so no runtime dependency on DaFont.
 2. **Holds the Intune Remediations scripts** (`Detect-*` / `Remediate-*`) that
    install the whole font set on each device and self-heal it.
 
@@ -17,7 +18,8 @@ It does two jobs:
 |------|---------|
 | `Detect-CustomFonts.ps1` | Intune **detection** script. The font list lives here — this is the only file you edit to add/change a font. Exit 1 = something needs installing. |
 | `Remediate-CustomFonts.ps1` | Intune **remediation** script. Downloads and installs whatever detection staged. No font list — never needs editing to add a font. |
-| `OpenDysB-Regular.otf`, `-Bold`, `-Italic`, `-BoldItalic` | The `OpenDys B` font (internal family name `OpenDys B`), served via raw URLs to the detection list. |
+| `OpenDyslexic-*.otf`, `OpenDyslexicAlta-*.otf`, `OpenDyslexicMono-Regular.otf` | The classic OpenDyslexic build (unmodified, keeps its original name), mirrored from the author's repo `antijingoist/open-dyslexic`. |
+| `OpenDysB-Regular.otf`, `-Bold`, `-Italic`, `-BoldItalic` | The `OpenDys B` font (internal family name `OpenDys B`), the renamed OpenDyslexic 3 redesign. |
 | `OFL.txt` | SIL Open Font License 1.1 — **must** stay beside the font files (see Licensing). |
 
 ## The fonts deployed
@@ -28,7 +30,7 @@ The detection list currently ships four families:
 |--------|--------|
 | **Lato** | google-webfonts-helper zip (all weights, one URL) |
 | **Josefin Sans** | official `google/fonts` repo (variable upright + italic) |
-| **OpenDyslexic** | DaFont zip — the unmodified classic v2.001 build (keeps its original name; also brings OpenDyslexicAlta + OpenDyslexicMono) |
+| **OpenDyslexic** | this repo — the unmodified classic build (keeps its original name; also brings OpenDyslexicAlta + OpenDyslexicMono). Mirrored from `antijingoist/open-dyslexic`; DaFont left commented as a fallback in the config. |
 | **OpenDys B** | this repo — the renamed OpenDyslexic 3 redesign |
 
 `OpenDyslexic` (classic) and `OpenDys B` (redesign) have **different internal
@@ -77,25 +79,31 @@ never an HTML page.
    `C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\CustomFontDeployment.log`
    (tagged `[DETECT]` / `[REMEDIATE]`).
 
-> **The `OpenDys B` raw URLs point at the `main` branch.** They only resolve once
-> the four `OpenDysB-*.otf` files are on `main`, so merge this branch to `main`
-> before the first device run. The other three families download from external
+> **The `OpenDyslexic` and `OpenDys B` raw URLs point at the `main` branch.** They
+> only resolve once the font files are on `main`, so merge this branch to `main`
+> before the first device run. Lato and Josefin Sans download from external
 > sources and are unaffected.
 
 Because devices that ran an earlier script have no recorded fingerprint, the
 first run of this package reconciles every font automatically — machines that
 picked up the GitHub redesign as "OpenDyslexic" get it force-replaced with the
-DaFont classic under that name, and pick up `OpenDys B` as a separate entry. No
+classic build under that name, and pick up `OpenDys B` as a separate entry. No
 manual cleanup.
 
 ## Licensing
 
-- **Fonts** (`OpenDysB-*.otf`) — SIL Open Font License 1.1, in [`OFL.txt`](OFL.txt).
-  OpenDyslexic © Abbie Gonzalez, with Reserved Font Name *OpenDyslexic*. This
-  build is a **Modified Version**: its internal family name is `OpenDys B` (it
-  does **not** carry the reserved name), and the original copyright and license
-  notices are retained, as the OFL requires. Redistribution here — including on a
-  public repo — is permitted provided `OFL.txt` travels with the fonts; keep them
-  together.
+All font files are OpenDyslexic © Abbie Gonzalez, under the SIL Open Font
+License 1.1, in [`OFL.txt`](OFL.txt), with Reserved Font Name *OpenDyslexic*.
+Redistribution here — including on a public repo — is permitted provided
+`OFL.txt` travels with the fonts; keep them together.
+
+- **Classic build** (`OpenDyslexic-*.otf`, `OpenDyslexicAlta-*.otf`,
+  `OpenDyslexicMono-Regular.otf`) — **unmodified originals**, mirrored from the
+  author's repo. They legitimately carry the reserved name because they are the
+  unchanged font.
+- **`OpenDysB-*.otf`** — a **Modified Version**: its internal family name is
+  `OpenDys B` (it does **not** carry the reserved name), and the original
+  copyright and license notices are retained, as the OFL requires for a
+  modified build.
 - **Scripts** (`*.ps1`) — internal deployment tooling for Sector12;
   provided as-is. The OFL applies only to the font files.
