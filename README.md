@@ -97,6 +97,10 @@ License 1.1, in [`OFL.txt`](OFL.txt), with Reserved Font Name *OpenDyslexic*.
 Redistribution here — including on a public repo — is permitted provided
 `OFL.txt` travels with the fonts; keep them together.
 
+OpenDyslexic's official home and the author's own downloads are at
+**[antijingoist.itch.io/opendyslexic](https://antijingoist.itch.io/opendyslexic)**.
+Please consider supporting the project there.
+
 - **Classic build** (`OpenDyslexic-*.otf`, `OpenDyslexicAlta-*.otf`,
   `OpenDyslexicMono-Regular.otf`) — **unmodified originals**, mirrored from the
   author's repo. They legitimately carry the reserved name because they are the
