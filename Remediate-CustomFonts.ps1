@@ -119,9 +119,14 @@ function Install-FontFile {
 function Remove-FontFile {
     param([string]$FileName)
     $dest = Join-Path $FontsDir $FileName
+    # -Name is wildcard-matched by the registry provider, so escape []*? (e.g. the
+    # Josefin Sans "[wght]" variable-font names) or the entry silently won't remove.
+    $regName = [System.Management.Automation.WildcardPattern]::Escape((Get-RegNameFor $FileName))
     try { [FontNative.Win]::RemoveFontResourceEx($dest, 0, [IntPtr]::Zero) | Out-Null } catch { }
-    try { Remove-ItemProperty -Path $FontRegKey -Name (Get-RegNameFor $FileName) -Force -ErrorAction SilentlyContinue } catch { }
-    if (Test-Path $dest) { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue }
+    try { Remove-ItemProperty -Path $FontRegKey -Name $regName -Force -ErrorAction SilentlyContinue } catch { }
+    # -LiteralPath so "[wght]" is treated literally, not as a wildcard (which makes
+    # Test-Path enumerate the special C:\Windows\Fonts folder and throw DirIOError).
+    if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue }
     Write-Log ("Removed old file: {0}" -f $FileName)
 }
 

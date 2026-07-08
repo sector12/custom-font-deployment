@@ -137,7 +137,7 @@ foreach ($font in $FontRegistry) {
         if ($instFp -eq $desiredFp -and $files.Count -gt 0) {
             $ok = $true
             foreach ($fn in $files) {
-                if (-not (Test-Path (Join-Path $FontsDir $fn))) { $ok = $false; break }
+                if (-not (Test-Path -LiteralPath (Join-Path $FontsDir $fn))) { $ok = $false; break }
             }
         }
     }
