@@ -13,8 +13,9 @@
       3. force-install the new files machine-wide (overwrite),
       4. record the fingerprint + installed file list so detection knows the
          font is current.
-    A font's staging entry is cleared only when ALL its URLs succeed; a partial
-    failure is left staged and retried next cycle.
+    A font's staging entry is cleared (and its state recorded) only when every
+    URL downloads AND every file installs (or is staged to swap on reboot). Any
+    download or install failure leaves the entry staged and retried next cycle.
 
     No font list lives here - fonts are edited only in the detection script.
 #>
@@ -123,11 +124,14 @@ function Install-FontFile {
         try { [FontNative.Win]::RemoveFontResourceEx($dest, 0, [IntPtr]::Zero) | Out-Null } catch { }
     }
 
+    # Returns 'installed' (now live), 'reboot' (will swap on next reboot) or
+    # 'failed'. The caller only marks a family done when no file returns 'failed'.
     try {
         Copy-Item -LiteralPath $SourcePath -Destination $dest -Force -ErrorAction Stop
         New-ItemProperty -Path $FontRegKey -Name (Get-RegNameFor $fileName) -Value $fileName -PropertyType String -Force | Out-Null
         [FontNative.Win]::AddFontResourceEx($dest, 0, [IntPtr]::Zero) | Out-Null
         Write-Log ("Installed: {0}" -f $fileName)
+        return 'installed'
     }
     catch {
         # Still locked (mapped by a running app or the Font Cache service). Stage
@@ -136,13 +140,18 @@ function Install-FontFile {
         try {
             if (-not (Test-Path -LiteralPath $RebootStage)) { New-Item -ItemType Directory -Path $RebootStage -Force | Out-Null }
             $persist = Join-Path $RebootStage $fileName
-            Copy-Item -LiteralPath $SourcePath -Destination $persist -Force
+            Copy-Item -LiteralPath $SourcePath -Destination $persist -Force -ErrorAction Stop
             # MOVEFILE_REPLACE_EXISTING (0x1) | MOVEFILE_DELAY_UNTIL_REBOOT (0x4)
-            [FontNative.Win]::MoveFileEx($persist, $dest, ([uint32]0x1 -bor [uint32]0x4)) | Out-Null
-            New-ItemProperty -Path $FontRegKey -Name (Get-RegNameFor $fileName) -Value $fileName -PropertyType String -Force | Out-Null
-            Write-Log ("In use - staged to replace on next reboot: {0}" -f $fileName)
+            if ([FontNative.Win]::MoveFileEx($persist, $dest, ([uint32]0x1 -bor [uint32]0x4))) {
+                New-ItemProperty -Path $FontRegKey -Name (Get-RegNameFor $fileName) -Value $fileName -PropertyType String -Force | Out-Null
+                Write-Log ("In use - staged to replace on next reboot: {0}" -f $fileName)
+                return 'reboot'
+            }
+            Write-Log ("FAILED to schedule reboot-replace for '{0}' (MoveFileEx returned false, error {1})." -f $fileName, [System.Runtime.InteropServices.Marshal]::GetLastWin32Error())
+            return 'failed'
         } catch {
             Write-Log ("FAILED to install '{0}': {1}" -f $fileName, $_.Exception.Message)
+            return 'failed'
         }
     }
 }
@@ -218,17 +227,30 @@ foreach ($item in $staged) {
                 }
             }
 
-            # 3. Force-install the new set. Install-FontFile logs its own outcome;
-            #    do NOT capture its output - $newNames is the authoritative file list.
-            foreach ($f in $newFiles) { Install-FontFile -SourcePath $f; $installedAny = $true }
+            # 3. Force-install the new set, tracking per-file outcome. 'reboot' still
+            #    counts as done (the file exists and will swap on reboot); only a
+            #    genuine 'failed' should keep the family staged for another attempt.
+            $anyFailed = $false
+            foreach ($f in $newFiles) {
+                if ((Install-FontFile -SourcePath $f) -eq 'failed') { $anyFailed = $true }
+                else { $installedAny = $true }
+            }
 
-            # 4. Record state so detection sees this font as current.
-            New-Item -Path $stateKey -Force | Out-Null
-            New-ItemProperty -Path $stateKey -Name 'Fingerprint' -Value $fingerprint           -PropertyType String      -Force | Out-Null
-            New-ItemProperty -Path $stateKey -Name 'Files'       -Value ([string[]]$newNames)  -PropertyType MultiString -Force | Out-Null
+            if ($anyFailed) {
+                # Don't record a satisfied fingerprint or clear staging - leave it so
+                # detection re-flags and remediation retries next cycle (as for a
+                # failed download). $newNames is authoritative when we do record.
+                Write-Log ("'{0}' had file(s) that failed to install - left staged for retry." -f $familyName)
+            }
+            else {
+                # 4. Record state so detection sees this font as current.
+                New-Item -Path $stateKey -Force | Out-Null
+                New-ItemProperty -Path $stateKey -Name 'Fingerprint' -Value $fingerprint           -PropertyType String      -Force | Out-Null
+                New-ItemProperty -Path $stateKey -Name 'Files'       -Value ([string[]]$newNames)  -PropertyType MultiString -Force | Out-Null
 
-            Remove-Item -Path $pk -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Log ("Completed '{0}' ({1} file(s))." -f $familyName, $newNames.Count)
+                Remove-Item -Path $pk -Recurse -Force -ErrorAction SilentlyContinue
+                Write-Log ("Completed '{0}' ({1} file(s))." -f $familyName, $newNames.Count)
+            }
         }
         else {
             Write-Log ("'{0}' left staged for retry (a download failed)." -f $familyName)
